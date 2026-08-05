@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Infinite ♾️🔥</title>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0a0a0a;
+            color: #00f5ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background 3s, filter 0.5s;
+        }
+        body.mood-dark { background: #1a0000; }
+        body.mood-chill { background: #000a1a; }
+        body.mood-energy { background: #1a001a; }
+        body.drop { filter: brightness(1.5); }
+
+   .container {
+            text-align: center;
+            z-index: 10;
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border-radius: 30px;
+            border: 2px solid #00f5ff;
+            box-shadow: 0 0 50px rgba(0, 245, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #00f5ff;
+        }
+   .subtitle {
+            color: #0088aa;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        #playBtn {
+            background: linear-gradient(135deg, #00f5ff, #0088ff);
+            border: none;
+            color: #000;
+            padding: 20px 60px;
+            font-size: 20px;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+            transition: all 0.3s;
+        }
+        #playBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(0, 245, 255, 0.8);
+        }
+        #playBtn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+   .controls {
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #0088aa;
+        }
+        input[type="range"] {
+            width: 250px;
+            height: 6px;
+            background: #1a1a1a;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00f5ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00f5ff;
+        }
+   .mood-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 250px;
+            margin: 5px auto 0;
+            font-size: 10px;
+            color: #006688;
+        }
+   .visualizer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+   .circle {
+            position: absolute;
+            border: 2px solid #00f5ff;
+            border-radius: 50%;
+            opacity: 0;
+            animation: pulse 0.8s ease-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(6); opacity: 0; }
+        }
+   .stats {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #0088aa;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+   .stat-box {
+            background: rgba(0, 245, 255, 0.1);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid #00f5ff;
+        }
+   .event {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #ffaa00;
+            min-height: 18px;
+            text-shadow: 0 0 10px #ffaa00;
+        }
+   .footer {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #0088aa;
+            text-shadow: 0 0 10px #00f5ff;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="visualizer" id="visualizer"></div>
+
+    <div class="container">
+        <h1>HOUSE INFINITE ♾️</h1>
+        <div class="subtitle">V1.3 - Soul Engine Active</div>
+        <button id="playBtn">▶ PLAY INFINITE</button>
+
+        <div class="controls">
+            <label>MOOD CONTROL</label>
+            <input type="range" id="moodSlider" min="0" max="100" value="50">
+            <div class="mood-labels">
+                <span>DARK</span>
+                <span>CHILL</span>
+                <span>ENERGY</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">BPM: <span id="bpm">128</span></div>
+            <div class="stat-box">KEY: <span id="key">A Min</span></div>
+            <div class="stat-box">BAR: <span id="bar">0</span></div>
+            <div class="stat-box">PHASE: <span id="phase">Intro</span></div>
+        </div>
+        <div class="event" id="event">-</div>
+    </div>
+
+    <div class="footer">
+        Made with 💖 for you by Afi & aimy
+    </div>
+
+    <script>
+        let isPlaying = false;
+        let currentBPM = 128;
+        let currentSeed = 0;
+        let barCount = 0;
+        let mood = 50;
+        let currentScale = 'A Minor';
+        let phase = 'Intro';
+        let muteTimer = 0;
+        let step = 0;
+
+        const scales = {
+            'A Minor': ['A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5'],
+            'E Minor': ['E3', 'G3', 'A3', 'B3', 'D4', 'E4', 'G4', 'A4'],
+            'D Minor': ['D3', 'F3', 'G3', 'A3', 'C4', 'D4', 'F4', 'G4'],
+            'F# Minor': ['F#3', 'A3', 'B3', 'C#4', 'E4', 'F#4', 'A4', 'B4']
+        };
+
+        // Master - VOLUME UP
+        const master = new Tone.Gain(0.9).toDestination();
+        const reverb = new Tone.Reverb({ decay: 2, wet: 0.25 }).connect(master);
+        const delay = new Tone.FeedbackDelay("8n", 0.3).connect(reverb);
+        delay.wet.value = 0.2;
+        const filter = new Tone.Filter(20000, "lowpass").connect(reverb);
+
+        // Kick
+        const kick = new Tone.MembraneSynth({
+            pitchDecay: 0.05, octaves: 10,
+            envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 }
+        }).connect(master);
+        kick.volume.value = -3;
+
+        // Hihat
+        const hihat = new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.001, decay: 0.05, sustain: 0 }
+        }).connect(filter);
+        hihat.volume.value = -12;
+
+        // Clap
+        const clap = new Tone.NoiseSynth({
+            envelope: { attack: 0.001, decay: 0.2, sustain: 0 }
+        }).connect(reverb);
+        clap.volume.value = -8;
+
+        // Crash
+        const crash = new Tone.MetalSynth({
+            frequency: 200,
+            envelope: { attack: 0.001, decay: 1.4, release: 0.2 },
+            harmonicity: 5.1,
+            modulationIndex: 32,
+            resonance: 4000,
+            octaves: 1.5
+        }).connect(reverb);
+        crash.volume.value = -10;
+
+        // Bass
+        const bass = new Tone.MonoSynth({
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.01, decay: 0.3, sustain: 0.4, release: 0.8 },
+            filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.8, baseFrequency: 200, octaves: 2 }
+        }).connect(filter);
+        bass.volume.value = -8;
+
+        // Lead - بوق کم شد: Attack نرمتر + Volume کمتر
+        const lead = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'triangle' }, // triangle نرمتر از sawtooth
+            envelope: { attack: 0.1, decay: 0.2, sustain: 0.3, release: 0.8 } // attack 0.1
+        }).connect(delay);
+        lead.volume.value = -20; // خیلی کمتر
+
+        // Piano FL Keys - جدید
+        const piano = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.01, decay: 0.8, sustain: 0.2, release: 1.5 }
+        }).connect(reverb);
+        piano.volume.value = -12;
+
+        // Guitar
+        const guitar = new Tone.MonoSynth({
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.05, decay: 0.3, sustain: 0.6, release: 1.5 },
+            filterEnvelope: { attack: 0.01, decay: 0.4, sustain: 0.8, release: 1.5, baseFrequency: 800, octaves: 3 }
+        }).connect(reverb);
+        guitar.volume.value = -14;
+
+        // Arp
+        const arp = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'square' },
+            envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.4 }
+        }).connect(delay);
+        arp.volume.value = -18;
+
+        function showEvent(text) {
+            document.getElementById('event').textContent = text;
+            setTimeout(() => {
+                if(document.getElementById('event').textContent === text) {
+                    document.getElementById('event').textContent = '-';
+                }
+            }, 3000);
+        }
+
+        function generateBassPattern(seed, mood) {
+            const notes = mood < 33? ['A1', 'E1', 'D1', 'G1'] :
+                          mood > 66? ['A2', 'C3', 'E2', 'G2'] :
+                          ['A1', 'C2', 'D2', 'E2', 'G1'];
+            const pattern = [];
+            for(let i = 0; i < 8; i++) {
+                const noteIndex = (seed + i * 3) % notes.length;
+                pattern.push(notes[noteIndex]);
+            }
+            return pattern;
+        }
+
+        function generateLeadPattern(seed, scale) {
+            const notes = scales[scale];
+            const pattern = [];
+            const density = mood < 33? 4 : mood > 66? 16 : 8;
+            for(let i = 0; i < density; i++) {
+                if(Math.random() > 0.3) {
+                    const noteIndex = (seed + i * 5) % notes.length;
+                    pattern.push({ note: notes[noteIndex], time: i * (16/density) });
+                }
+            }
+            return pattern;
+        }
+
+        function generatePianoChords(seed, scale) {
+            const notes = scales[scale];
+            const chords = [];
+            for(let i = 0; i < 4; i++) {
+                const rootIdx = (seed + i * 3) % (notes.length - 2);
+                chords.push([notes[rootIdx], notes[rootIdx + 2], notes[rootIdx + 4]]);
+            }
+            return chords;
+        }
+
+        function createPulse(color = '#00f5ff', size = 50) {
+            const circle = document.createElement('div');
+            circle.className = 'circle';
+            circle.style.left = Math.random() * 100 + '%';
+            circle.style.top = Math.random() * 100 + '%';
+            circle.style.width = size + 'px';
+            circle.style.height = size + 'px';
+            circle.style.borderColor = color;
+            document.getElementById('visualizer').appendChild(circle);
+            setTimeout(() => circle.remove(), 800);
+        }
+
+        function humanize(time) {
+            return time + (Math.random() * 0.01 - 0.005);
+        }
+
+        function updateMoodVisuals() {
+            document.body.className = '';
+            if(mood < 33) document.body.classList.add('mood-dark');
+            else if(mood > 66) document.body.classList.add('mood-energy');
+            else document.body.classList.add('mood-chill');
+        }
+
+        function startHouseLoop() {
+            currentSeed = Date.now();
+            currentBPM = 120 + Math.floor(mood / 12.5);
+            currentScale = Object.keys(scales)[currentSeed % 4];
+            phase = 'Intro';
+
+            Tone.Transport.bpm.value = currentBPM;
+            document.getElementById('bpm').textContent = currentBPM;
+            document.getElementById('key').textContent = currentScale;
+            document.getElementById('phase').textContent = phase;
+
+            let bassPattern = generateBassPattern(currentSeed, mood);
+            let leadPattern = generateLeadPattern(currentSeed, currentScale);
+            let pianoChords = generatePianoChords(currentSeed, currentScale);
+            let guitarActive = false;
+            step = 0;
+
+            // Kick
+            Tone.Transport.scheduleRepeat((time) => {
+                if(muteTimer <= 0 && phase!== 'Break') {
+                    kick.triggerAttackRelease('C1', '8n', humanize(time));
+                    createPulse('#00f5ff', 60);
+                }
+                barCount++;
+                document.getElementById('bar').textContent = Math.floor(barCount / 4);
+
+                const bar = Math.floor(barCount / 4);
+                if(bar % 32 === 0) phase = 'Intro';
+                else if(bar % 32 === 8) phase = 'Build';
+                else if(bar % 32 === 16) phase = 'Drop';
+                else if(bar % 32 === 28) phase = 'Break';
+                document.getElementById('phase').textContent = phase;
+
+                if(bar % 16 === 0 && Math.random() < 0.05) {
+                    muteTimer = 4;
+                    showEvent('⚡ BREAK');
+                    document.body.classList.add('drop');
+                    setTimeout(() => document.body.classList.remove('drop'), 500);
+                }
+
+                if(bar % 8 === 0 && Math.random() < 0.1) {
+                    crash.triggerAttackRelease('8n', time);
+                    createPulse('#ffffff', 150);
+                    showEvent('💥 CRASH');
+                }
+
+                if(muteTimer > 0) muteTimer--;
+
+            }, '4n');
+
+            // Hihat
+            Tone.Transport.scheduleRepeat((time) => {
+                if(muteTimer <= 0) {
+                    const hihatVolume = -15 + (mood / 10);
+                    hihat.volume.value = hihatVolume;
+                    hihat.triggerAttackRelease('16n', humanize(time + Tone.Time('8n').toSeconds()));
+                }
+            }, '4n');
+
+            // Clap
+            Tone.Transport.scheduleRepeat((time) => {
+                if(muteTimer <= 0 && phase!== 'Break') {
+                    clap.triggerAttackRelease('16n', humanize(time + Tone.Time('4n').toSeconds()));
+                    createPulse('#ff0088', 40);
+                }
+            }, '2n');
+
+            // Bass
+            Tone.Transport.scheduleRepeat((time) => {
+                if(muteTimer <= 0) {
+                    const note = bassPattern[step % 8];
+                    bass.triggerAttackRelease(note, '8n', humanize(time));
+                    step++;
+                }
+            }, '4n');
+
+            // Lead - بوق کم شد
+            leadPattern.forEach(item => {
+                Tone.Transport.scheduleRepeat((time) => {
+                    if(muteTimer <= 0 && Math.random() > (1 - mood/100)) {
+                        lead.triggerAttackRelease(item.note, '16n', humanize(time));
+                        createPulse('#ffaa00', 30);
+                    }
+                }, '1m', item.time + 'i');
+            });
+
+            // Piano - جدید
+            Tone.Transport.scheduleRepeat((time) => {
+                if(muteTimer <= 0 && phase === 'Break' && step % 8 === 0) {
+                    const chord = pianoChords[Math.floor(step / 8) % 4];
+                    piano.triggerAttackRelease(chord, '2n', humanize(time));
+                    createPulse('#00ff88', 80);
+                }
+            }, '1m');
+
+            // Arp
+            Tone.Transport.scheduleRepeat((time) => {
+                if(muteTimer <= 0 && Math.random() < 0.3) {
+                    const notes = scales[currentScale];
+                    const note = notes[Math.floor(Math.random() * notes.length)];
+                    arp.triggerAttackRelease(note, '32n', humanize(time));
+                }
+            }, '16n');
+
+            // Filter Sweep
+            Tone.Transport.scheduleRepeat((time) => {
+                const freq = 500 + Math.sin(time * 0.1) * 19500;
+                filter.frequency.rampTo(freq, 0.1);
+            }, '16n');
+
+            // هر 8 بار پترن عوض شه
+            Tone.Transport.scheduleRepeat(() => {
+                currentSeed = Date.now();
+                currentScale = Object.keys(scales)[currentSeed % 4];
+                bassPattern = generateBassPattern(currentSeed, mood);
+                leadPattern = generateLeadPattern(currentSeed, currentScale);
+                pianoChords = generatePianoChords(currentSeed, currentScale);
+                document.getElementById('key').textContent = currentScale;
+
+                if(phase === 'Build') {
+                    showEvent('↗️ BUILD UP');
+                }
+            }, '8m');
+
+            Tone.Transport.start();
+        }
+
+        document.getElementById('playBtn').addEventListener('click', async () => {
+            if (!isPlaying) {
+                await Tone.start();
+                await Tone.context.resume();
+                startHouseLoop();
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏸ PAUSE';
+                document.getElementById('playBtn').style.background = 'linear-gradient(135deg, #ff0088, #ff0066)';
+            } else {
+                Tone.Transport.stop();
+                Tone.Transport.cancel();
+                isPlaying = false;
+                barCount = 0;
+                muteTimer = 0;
+                document.getElementById('playBtn').textContent = '▶ PLAY INFINITE';
+                document.getElementById('playBtn').style.background = 'linear-gradient(135deg, #00f5ff, #0088ff)';
+                document.getElementById('event').textContent = '-';
+            }
+        });
+
+        document.getElementById('moodSlider').addEventListener('input', (e) => {
+            mood = e.target.value;
+            updateMoodVisuals();
+            if(isPlaying) {
+                Tone.Transport.bpm.value = 120 + Math.floor(mood / 12.5);
+                document.getElementById('bpm').textContent = Tone.Transport.bpm.value;
+            }
+        });
+
+        updateMoodVisuals();
+    </script>
+</body>
+</html>
